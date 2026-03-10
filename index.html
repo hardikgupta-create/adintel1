@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- saved from url=(0062)file:///Users/hardikgupta/Downloads/meta-claude-dashboard.html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AdIntel — Meta × Claude</title>
-<link href="./meta-claude-dashboard_files/css2" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#2a2a3a;
@@ -113,23 +113,32 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title">⚙️ API Settings</div>
-    <div class="modal-sub">Saved securely in your browser's local storage — never sent anywhere except directly to Meta &amp; Claude APIs.</div>
+    <div class="modal-sub">Saved securely in your browser's local storage — never sent anywhere except directly to Meta & Claude APIs.</div>
     <div class="input-group">
       <label>Claude API Key</label>
-      <input type="password" id="claudeKey" placeholder="sk-ant-api03-...">
+      <input type="password" id="claudeKey" placeholder="sk-ant-api03-..." />
     </div>
     <div class="input-group">
       <label>Meta Access Token</label>
-      <input type="password" id="metaToken" placeholder="EAAUyLni...">
+      <input type="password" id="metaToken" placeholder="EAAUyLni..." />
     </div>
     <div class="input-group">
-      <label>Meta Ad Account ID</label>
-      <input type="text" id="metaAccountId" placeholder="act_123456789">
+      <label>Meta Ad Account</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="metaAccountId" placeholder="Click 'Fetch Accounts' →" style="flex:1;" />
+        <button class="btn btn-secondary" style="white-space:nowrap;padding:8px 12px;font-size:12px;" onclick="fetchAccounts()">🔍 Fetch Accounts</button>
+      </div>
+    </div>
+    <div id="accountSelectRow" class="input-group" style="display:none;">
+      <label>Select Account</label>
+      <select id="accountSelect" onchange="onAccountSelect()" style="background:#0a0a0f;border:1px solid #2a2a3a;border-radius:8px;padding:11px 14px;color:#e8e8f0;font-size:13px;width:100%;">
+        <option value="">-- Select account --</option>
+      </select>
     </div>
     <div id="modalError" class="error-msg"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndLoad()">💾 Save &amp; Connect</button>
+      <button class="btn btn-primary" onclick="saveAndLoad()">💾 Save & Connect</button>
     </div>
   </div>
 </div>
@@ -154,9 +163,9 @@
   </div>
 
   <!-- Refresh bar -->
-  <div class="refresh-bar" id="refreshBar" style="display: flex;">
+  <div class="refresh-bar" id="refreshBar" style="display:none;">
     <div style="display:flex;align-items:center;gap:8px;">
-      <span>🕐</span><span id="lastRefreshed">Last updated: 3 Mar, 05:23 pm</span>
+      <span>🕐</span><span id="lastRefreshed">Loading...</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;">
       <span style="color:var(--success);font-size:11px;">● Auto-refreshes every 30 min</span>
@@ -166,38 +175,40 @@
 
   <!-- Metrics -->
   <div class="metrics-grid">
-    <div class="metric-card"><div class="metric-label">Total Spend</div><div class="metric-value" id="metricSpend">₹13,10,128</div><div class="metric-sub">last 7 days</div></div>
-    <div class="metric-card"><div class="metric-label">Impressions</div><div class="metric-value" id="metricImpressions">19.6M</div><div class="metric-sub">total reach</div></div>
-    <div class="metric-card"><div class="metric-label">Clicks</div><div class="metric-value" id="metricClicks">192.5K</div><div class="metric-sub" id="metricCTR">CTR 0.98%</div></div>
-    <div class="metric-card"><div class="metric-label">Conversions</div><div class="metric-value" id="metricConversions">NaN</div><div class="metric-sub" id="metricCPC">CPC ₹6.80</div></div>
+    <div class="metric-card"><div class="metric-label">Total Spend</div><div class="metric-value" id="metricSpend">—</div><div class="metric-sub">last 7 days</div></div>
+    <div class="metric-card"><div class="metric-label">Impressions</div><div class="metric-value" id="metricImpressions">—</div><div class="metric-sub">total reach</div></div>
+    <div class="metric-card"><div class="metric-label">Clicks</div><div class="metric-value" id="metricClicks">—</div><div class="metric-sub" id="metricCTR">avg CTR —</div></div>
+    <div class="metric-card"><div class="metric-label">Conversions</div><div class="metric-value" id="metricConversions">—</div><div class="metric-sub" id="metricCPC">avg CPC —</div></div>
   </div>
 
   <!-- Campaigns -->
   <div class="campaigns-panel">
     <div class="panel-header">
-      <div class="panel-title">📣 Campaigns <span style="color:var(--muted);font-weight:400;font-size:12px;margin-left:6px;" id="campaignCount">20 campaigns</span></div>
-      <div style="font-size:12px;color:var(--muted);font-family:&#39;DM Mono&#39;,monospace;">Last 7 days · sorted by spend</div>
+      <div class="panel-title">📣 Campaigns <span style="color:var(--muted);font-weight:400;font-size:12px;margin-left:6px;" id="campaignCount"></span></div>
+      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Last 7 days · sorted by spend</div>
     </div>
-    <div id="campaignsTable"><table><thead><tr><th>Campaign</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>CPC</th><th>Conv.</th></tr></thead><tbody><tr><td><div class="campaign-name" title="FB_Top_Cities_Oct19">FB_Top_Cities_Oct19</div></td><td>₹2,41,687</td><td>1.7M</td><td>3.9K</td><td>0.23%</td><td>₹62.29</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_MCG_SE_LeadWeb">FB_MCG_SE_LeadWeb</div></td><td>₹1,68,511</td><td>556.2K</td><td>11.2K</td><td>2.02%</td><td>₹15.03</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_IT_Exporters_MCG_Apr8">FB_IT_Exporters_MCG_Apr8</div></td><td>₹1,39,089</td><td>1.1M</td><td>4.7K</td><td>0.42%</td><td>₹29.68</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="Tier_1_Cities_MOFU">Tier_1_Cities_MOFU</div></td><td>₹1,29,654</td><td>460.5K</td><td>15.6K</td><td>3.39%</td><td>₹8.32</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_SQL_Tier1_IF_Jan26">FB_SQL_Tier1_IF_Jan26</div></td><td>₹1,23,121</td><td>429.9K</td><td>2.3K</td><td>0.53%</td><td>₹54.12</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Conversion_June20">FB_Conversion_June20</div></td><td>₹85,112</td><td>433.6K</td><td>4.0K</td><td>0.91%</td><td>₹21.53</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Intrade_Interest_Aug11">FB_Intrade_Interest_Aug11</div></td><td>₹80,656</td><td>778.2K</td><td>8.2K</td><td>1.05%</td><td>₹9.85</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="Tier_2_Cities_MOFU">Tier_2_Cities_MOFU</div></td><td>₹69,708</td><td>642.8K</td><td>15.4K</td><td>2.40%</td><td>₹4.52</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Export_Industries_Apr1">FB_Export_Industries_Apr1</div></td><td>₹63,621</td><td>871.1K</td><td>100.1K</td><td>11.50%</td><td>₹0.64</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_User_Int_Leads">FB_User_Int_Leads</div></td><td>₹48,053</td><td>83.9K</td><td>8.6K</td><td>10.20%</td><td>₹5.61</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Organic_Retargeting">FB_Organic_Retargeting</div></td><td>₹42,637</td><td>412.1K</td><td>4.0K</td><td>0.96%</td><td>₹10.73</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Lookalike_Audience_6Jun">FB_Lookalike_Audience_6Jun</div></td><td>₹29,915</td><td>305.1K</td><td>2.3K</td><td>0.76%</td><td>₹12.98</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_Amazon_Webinar_Dec25">FB_Amazon_Webinar_Dec25</div></td><td>₹26,234</td><td>79.1K</td><td>678</td><td>0.86%</td><td>₹38.69</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_BA_R&amp;F">FB_BA_R&amp;F</div></td><td>₹23,914</td><td>11.4M</td><td>7.8K</td><td>0.07%</td><td>₹3.07</td><td>NaN</td></tr><tr><td><div class="campaign-name" title="FB_MCG_Webinar_Jan27">FB_MCG_Webinar_Jan27</div></td><td>₹14,668</td><td>57.3K</td><td>351</td><td>0.61%</td><td>₹41.79</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_Aware_Oct15">FB_Aware_Oct15</div></td><td>₹13,485</td><td>198.7K</td><td>3.1K</td><td>1.55%</td><td>₹4.38</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_IB_SMB_Open">FB_IB_SMB_Open</div></td><td>₹10,022</td><td>28.9K</td><td>421</td><td>1.46%</td><td>₹23.81</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_Aware_MCG_Cold_Outbound">FB_Aware_MCG_Cold_Outbound</div></td><td>₹35</td><td>18.4K</td><td>8</td><td>0.04%</td><td>₹4.35</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_Business_Interest_June05">FB_Business_Interest_June05</div></td><td>₹5</td><td>26</td><td>2</td><td>7.69%</td><td>₹2.63</td><td>0</td></tr><tr><td><div class="campaign-name" title="FB_Web_Interest_Apr27">FB_Web_Interest_Apr27</div></td><td>₹0</td><td>0</td><td>0</td><td>0.00%</td><td>₹0.00</td><td>NaN</td></tr></tbody></table></div>
+    <div id="campaignsTable">
+      <div class="empty-state"><div class="empty-icon">📋</div><p>Connect your account to see campaigns</p></div>
+    </div>
   </div>
 
   <!-- Chat -->
   <div class="chat-panel">
     <div class="panel-header"><div class="panel-title">🤖 Ask Claude about your ads</div></div>
     <div class="quick-prompts">
-      <button class="quick-btn" onclick="quickPrompt(&#39;Summarize my campaign performance and key takeaways&#39;)">📊 Summary</button>
-      <button class="quick-btn" onclick="quickPrompt(&#39;Which campaign has the best ROI and why?&#39;)">🏆 Best campaign</button>
-      <button class="quick-btn" onclick="quickPrompt(&#39;Which campaigns should I pause or reduce budget on?&#39;)">⚠️ Underperformers</button>
-      <button class="quick-btn" onclick="quickPrompt(&#39;Give me 5 actionable optimization tips&#39;)">💡 Optimize</button>
-      <button class="quick-btn" onclick="quickPrompt(&#39;Write 3 new ad copy variations for my best performing campaign&#39;)">✍️ Ad copy</button>
-      <button class="quick-btn" onclick="quickPrompt(&#39;How should I reallocate budget across campaigns?&#39;)">💰 Budget</button>
+      <button class="quick-btn" onclick="quickPrompt('Summarize my campaign performance and key takeaways')">📊 Summary</button>
+      <button class="quick-btn" onclick="quickPrompt('Which campaign has the best ROI and why?')">🏆 Best campaign</button>
+      <button class="quick-btn" onclick="quickPrompt('Which campaigns should I pause or reduce budget on?')">⚠️ Underperformers</button>
+      <button class="quick-btn" onclick="quickPrompt('Give me 5 actionable optimization tips')">💡 Optimize</button>
+      <button class="quick-btn" onclick="quickPrompt('Write 3 new ad copy variations for my best performing campaign')">✍️ Ad copy</button>
+      <button class="quick-btn" onclick="quickPrompt('How should I reallocate budget across campaigns?')">💰 Budget</button>
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="message">
         <div class="avatar avatar-claude">✦</div>
         <div class="bubble bubble-claude">Hi! I'm Claude. Your Meta Ads data will auto-load every time you open this page — no need to enter anything again. Ask me anything about your campaigns! 🚀</div>
       </div>
-    <div class="message "><div class="avatar avatar-claude">✦</div><div class="bubble bubble-claude">⚠️ Meta API error: (#100) Tried accessing nonexisting field (insights)<br><br>Your access token may have expired. Click ⚙️ Settings to update it.</div></div><div class="message "><div class="avatar avatar-claude">✦</div><div class="bubble bubble-claude">⚠️ Meta API error: (#100) Tried accessing nonexisting field (insights)<br><br>Your access token may have expired. Click ⚙️ Settings to update it.</div></div><div class="message "><div class="avatar avatar-claude">✦</div><div class="bubble bubble-claude">⚠️ Meta API error: (#100) Tried accessing nonexisting field (insights)<br><br>Your access token may have expired. Click ⚙️ Settings to update it.</div></div><div class="message user"><div class="bubble bubble-user">telll me the spends for the month of feb</div><div class="avatar avatar-user">👤</div></div><div class="message "><div class="avatar avatar-claude">✦</div><div class="bubble bubble-claude">⚠️ Failed to fetch</div></div><div class="message user"><div class="bubble bubble-user">Why do you failed to fetch?</div><div class="avatar avatar-user">👤</div></div><div class="message "><div class="avatar avatar-claude">✦</div><div class="bubble bubble-claude">⚠️ Failed to fetch</div></div></div>
+    </div>
     <div class="chat-input-area">
       <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask about your campaigns..." onkeydown="handleKey(event)"></textarea>
       <button class="btn btn-primary" onclick="sendMessage()" id="sendBtn">Send ↑</button>
@@ -230,11 +241,39 @@
 
   function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
+  async function fetchAccounts() {
+    const m = document.getElementById('metaToken').value.trim();
+    if (!m) { document.getElementById('modalError').textContent = '⚠ Enter Meta token first'; return; }
+    document.getElementById('modalError').textContent = 'Fetching accounts...';
+    try {
+      const r = await fetch(`https://graph.facebook.com/v18.0/me/adaccounts?fields=id,name&access_token=${m}`);
+      const j = await r.json();
+      if (j.error) { document.getElementById('modalError').textContent = '⚠ '+j.error.message; return; }
+      const sel = document.getElementById('accountSelect');
+      sel.innerHTML = '<option value="">-- Select account --</option>';
+      (j.data||[]).forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = acc.id;
+        opt.textContent = acc.name + ' ('+acc.id+')';
+        sel.appendChild(opt);
+      });
+      document.getElementById('accountSelectRow').style.display = 'flex';
+      document.getElementById('metaAccountId').style.display = 'none';
+      document.getElementById('modalError').textContent = '✅ '+j.data.length+' accounts found — select one below';
+    } catch(e) { document.getElementById('modalError').textContent = '⚠ '+e.message; }
+  }
+
+  function onAccountSelect() {
+    const sel = document.getElementById('accountSelect');
+    if (sel.value) document.getElementById('metaAccountId').value = sel.value;
+  }
+
   function saveAndLoad() {
     const c = document.getElementById('claudeKey').value.trim();
     const m = document.getElementById('metaToken').value.trim();
-    const a = document.getElementById('metaAccountId').value.trim();
-    if (!c || !m || !a) { document.getElementById('modalError').textContent = '⚠ Please fill in all 3 fields'; return; }
+    const sel = document.getElementById('accountSelect');
+    const a = sel.value || document.getElementById('metaAccountId').value.trim();
+    if (!c || !m || !a) { document.getElementById('modalError').textContent = '⚠ Please fill in all fields and select an account'; return; }
     localStorage.setItem(K.claude, c);
     localStorage.setItem(K.meta, m);
     localStorage.setItem(K.account, a);
@@ -342,6 +381,5 @@
 
   function removeLoading(id) { const el=document.getElementById(id); if(el)el.remove(); }
 </script>
-
-
-</body></html>
+</body>
+</html>
